@@ -1,0 +1,7 @@
+logistic-core-v4/
+├── package.json          <-- تحديث: إضافة مكتبة socket.io
+├── server.js             <-- تحديث: ربط الخادم بمحرك الـ WebSockets
+├── config/
+│   └── socket.js         <-- جديد: إعداد بروتوكولات البث وغرف الاتصال
+└── controllers/
+    └── iotController.js  <-- جديد: محاكاة أجهزة الـ GPS وبث الإحداثيات الحية

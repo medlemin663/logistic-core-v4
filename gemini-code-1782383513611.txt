@@ -1,0 +1,10 @@
+logistic-core-v4/
+├── .env                  <-- تحديث: إضافة مفتاح التشفير السري JWT_SECRET
+├── package.json          <-- تحديث: إضافة مكتبات التشفير والحماية
+├── middleware/           <-- جديد: طبقة الحماية والتأمين للروابط
+│   └── authMiddleware.js <-- جديد
+├── controllers/
+│   ├── authController.js <-- جديد: إدارة دخول المشرفين والمناديب
+│   └── fleetController.js <-- تحديث: إضافة وظيفة التحقق من الـ OTP لإغلاق الرحلة
+└── routes/
+    └── fleetRoutes.js    <-- تحديث: حماية الروابط وتضمين مسارات الأمان الجديدة

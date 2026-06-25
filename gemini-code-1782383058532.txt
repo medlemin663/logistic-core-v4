@@ -1,0 +1,14 @@
+logistic-core-v4/
+├── .env                  <-- جديد: لملفات البيئة السرية
+├── package.json          <-- تحديث لإضافة المكتبات الجديدة
+├── server.js             <-- تحديث لتضمين الاتصال بالقاعدة
+├── config/
+│   ├── constants.js
+│   └── db.js             <-- جديد: ملف الاتصال الفعلي
+├── models/               <-- جديد: المخططات الهيكلية للبيانات
+│   ├── Driver.js         <-- جديد
+│   └── Trip.js           <-- جديد
+├── controllers/
+│   └── fleetController.js <-- تحديث للتعامل مع قاعدة البيانات الحقيقية
+└── routes/
+    └── fleetRoutes.js

@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة الاتحادية اللوجستية الذكية المستدامة - الإصدار الرابع V4</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        /* ===== الهوية البصرية والتصميم العام للمنصة ===== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary-color: #0c2340;
+            --primary-light: #1d3557;
+            --secondary-color: #0284c7;
+            --success-color: #16a34a;
+            --warning-color: #ea580c;
+            --danger-color: #dc2626;
+            --bg-dark: #0f172a;
+            --card-bg: #ffffff;
+            --text-dark: #1e293b;
+            --text-light: #64748b;
+            --border-color: #e2e8f0;
+            --app-accent: #d4af37;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #cbd5e1 100%);
+            color: var(--text-dark);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .workspace-grid {
+            display: grid;
+            grid-template-columns: 430px 1fr;
+            gap: 25px;
+            max-width: 1850px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 1250px) { .workspace-grid { grid-template-columns: 1fr; } }
+
+        /* ===== محاكي الهاتف المحمول الذكي للميدان ===== */
+        .phone-frame {
+            background: #1e293b;
+            border-radius: 40px;
+            padding: 14px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3);
+            border: 4px solid #0f172a;
+            height: 890px;
+            position: sticky;
+            top: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .phone-screen {
+            background: #f8fafc;
+            border-radius: 30px;
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            border: 2px solid var(--secondary-color);
+        }
+
+        .phone-header {
+            background: linear-gradient(135deg, #0c2340 0%, #1e293b 100%);
+            color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .phone-body { flex: 1; overflow-y: auto; padding: 12px; padding-bottom: 75px; }
+        .phone-tab-page { display: none; }
+        .phone-tab-page.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        
+        .phone-nav {
+            position: absolute;
+            bottom: 0; left: 0; right: 0; height: 65px;
+            background: white; border-top: 1px solid var(--border-color);
+            display: grid; grid-template-columns: repeat(5, 1fr);
+            align-items: center; text-align: center; z-index: 10;
+        }
+        .phone-nav-item {
+            color: var(--text-light); cursor: pointer; font-size: 0.65rem;
+            display: flex; flex-direction: column; align-items: center; gap: 3px;
+        }
+        .phone-nav-item.active { color: var(--secondary-color); font-weight: bold; }
+
+        /* ===== لوحة التحكم والعمليات المركزية الكبرى للاتحادية ===== */
+        .central-station {
+            background: white; border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            border: 1px solid var(--border-color);
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        .station-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+            color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .station-tabs {
+            display: flex; gap: 4px; background: #f1f5f9; padding: 10px; border-bottom: 1px solid var(--border-color);
+            overflow-x: auto;
+        }
+        .station-tab-btn {
+            padding: 10px 16px; background: transparent; border: none; border-radius: 6px;
+            color: var(--text-light); font-weight: 600; cursor: pointer; white-space: nowrap;
+            display: flex; align-items: center; gap: 8px; transition: 0.2s;
+        }
+        .station-tab-btn.active { background: var(--primary-color); color: white; }
+
+        .station-body { padding: 20px; flex: 1; }
+        .station-panel { display: none; }
+        .station-panel.active { display: block; }
+
+        #main-fleet-map { width: 100%; height: 380px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 15px; }
+        .iot-chart-container { background: #f8fafc; border: 1px solid var(--border-color); border-radius: 10px; padding: 12px; margin-top: 15px; }
+
+        /* ستايلات الجداول والعدادات والشرائط */
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .card-stat { background: #f8fafc; padding: 15px; border-radius: 10px; border-right: 4px solid var(--secondary-color); }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 0.8rem; font-weight: bold; margin-bottom: 4px; }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; }
+        
+        .btn { padding: 10px 15px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; justify-content: center; }
+        .btn-blue { background: var(--secondary-color); color: white; }
+        .btn-green { background: var(--success-color); color: white; }
+        .btn-orange { background: var(--warning-color); color: white; }
+        .btn-red { background: var(--danger-color); color: white; }
+
+        .health-bar-container { width: 100%; background: #e2e8f0; border-radius: 10px; height: 6px; margin-top: 4px; overflow: hidden; }
+        .health-bar-fill { height: 100%; background: var(--success-color); transition: width 0.3s ease; }
+
+        .terminal-box { background: #090d16; color: #38bdf8; font-family: monospace; padding: 12px; border-radius: 8px; max-height: 120px; overflow-y: auto; font-size: 0.75rem; margin-top: 20px; }
+        .queue-badge { padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: bold; }
+        
+        /* مودال الدفع */
+        .payment-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 9999; align-items: center; justify-content: center; }
+        .payment-card { background: white; border-radius: 16px; padding: 25px; max-width: 450px; width: 90%; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+
+        /* كاميرا المحاكاة للـ Vision AI */
+        .vision-camera-box { background: #000; height: 160px; border-radius: 10px; position: relative; margin-top: 10px; display: flex; align-items: center; justify-content: center; color: white; overflow: hidden; border: 2px solid #cbd5e1; }
+        .vision-scan-line { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--success-color); animation: scanAnimation 2s linear infinite; display: none; }
+
+        @keyframes scanAnimation { 0% { top: 0; } 50% { top: 100%; } 100% { top: 0; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<div class="workspace-grid">
+
+    <div class="phone-frame">
+        <div class="phone-screen">
+            <header class="phone-header">
+                <div>
+                    <h3 style="font-size: 0.85rem;">بوابة الميدان والآليات (V4)</h3>
+                    <span style="font-size: 0.6rem; color: #a7f3d0;"><i class="fas fa-satellite"></i> شبكة الأقمار الصناعية الهجينة Active</span>
+                </div>
+                <span style="background: rgba(255,255,255,0.15); padding: 4px 8px; border-radius: 10px; font-size: 0.65rem;" id="m-hub-indicator">محور آدرار</span>
+            </header>
+
+            <div class="phone-body">
+                
+                <div id="m-tab-home" class="phone-tab-page active">
+                    <div style="background: linear-gradient(135deg, #0c2340 0%, #1e3557 100%); color:white; padding:15px; border-radius:12px; margin-bottom:15px;">
+                        <span style="font-size:0.65rem; text-transform:uppercase; color:#93c5fd;">الوضعية الحركية الحالية</span>
+                        <h4 style="margin-top:2px; font-size:0.95rem;" id="m-driver-status-text">متاح في انتظار التعيين</h4>
+                    </div>
+
+                    <h4 style="font-size:0.8rem; margin-bottom:8px;"><i class="fas fa-truck-loading"></i> طلبات النقل والرحلات النشطة الموجهة:</h4>
+                    <div id="m-active-jobs-list"></div>
+                </div>
+
+                <div id="m-tab-sensors" class="phone-tab-page">
+                    <h4 style="font-size:0.9rem; margin-bottom:10px;"><i class="fas fa-temperature-high"></i> رصد مستشعرات إنترنت الأشياء (IoT Container)</h4>
+                    <div style="background:white; padding:12px; border-radius:10px; border:1px solid var(--border-color); margin-bottom:10px;">
+                        <div style="font-size:0.75rem; color:var(--text-light);">حرارة حاوية التمور والمنتجات:</div>
+                        <div style="font-size:1.4rem; font-weight:bold; color:var(--success-color);" id="m-sensor-temp">-- °C</div>
+                    </div>
+                    <div style="background:white; padding:12px; border-radius:10px; border:1px solid var(--border-color); margin-bottom:15px;">
+                        <div style="font-size:0.75rem; color:var(--text-light);">مستوى وقود الشاحنة المتبقي:</div>
+                        <div style="font-size:1.4rem; font-weight:bold; color:var(--secondary-color);" id="m-sensor-fuel">-- %</div>
+                    </div>
+                    <div id="m-sensor-alert" style="display:none; background:#fee2e2; color:var(--danger-color); padding:10px; border-radius:8px; font-size:0.75rem; font-weight:bold;"></div>
+                </div>
+
+                <div id="m-tab-vision" class="phone-tab-page">
+                    <h4 style="font-size:0.9rem; margin-bottom:5px;"><i class="fas fa-camera"></i> التحقق البصري الذكي من الحمولة والماشية</h4>
+                    <p style="font-size:0.7rem; color:var(--text-light); margin-bottom:10px;">قم بالتقاط صورة للشحنة عند البث لمطابقتها تلقائياً ومنع الفقدان البشري.</p>
+                    
+                    <div class="vision-camera-box" id="m-vision-cam">
+                        <div class="vision-scan-line" id="m-vision-scan"></div>
+                        <span id="m-vision-cam-placeholder" style="font-size:0.8rem; color:#94a3b8; text-align:center; padding:10px;"><i class="fas fa-qrcode fa-2x" style="display:block; margin-bottom:5px;"></i> بانتظار تشغيل عدسة التحقق الذكي</span>
+                    </div>
+                    
+                    <button class="btn btn-blue" style="width:100%; margin-top:12px; font-size:0.8rem;" onclick="simulateComputerVisionAnalysis()">📸 تشغيل كاميرا العد والتوثيق البصري</button>
+                    <div id="m-vision-result-box" style="margin-top:10px; display:none;"></div>
+                </div>
+
+                <div id="m-tab-queue" class="phone-tab-page">
+                    <div style="background:white; padding:15px; border-radius:12px; box-shadow:0 2px 5px rgba(0,0,0,0.05); margin-bottom:15px;">
+                        <h4 style="font-size:0.9rem; margin-bottom:10px;"><i class="fas fa-list-ol"></i> حجز دور مسبق لمنع تكدس الآليات</h4>
+                        <div class="form-group">
+                            <label>اختر محطة الشحن المستهدفة:</label>
+                            <select id="m-queue-station-select">
+                                <option value="NKC">محطة انطلاق نواكشوط الرئيسية</option>
+                                <option value="ATR">محطة واحات أطار اللوجستية</option>
+                                <option value="NDB">محطة ثغر نواذيبو المفتوح</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-blue" style="width:100%; font-size:0.8rem;" onclick="requestQueueTicketFromMobile()">اصدار تذكرة الطابور الرقمي</button>
+                    </div>
+                    <div id="m-queue-ticket-result"></div>
+                </div>
+
+                <div id="m-tab-wallet" class="phone-tab-page">
+                    <div style="background:white; padding:15px; border-radius:12px; border:1px solid var(--border-color); margin-bottom:15px;">
+                        <span style="font-size:0.7rem; color:var(--text-light);">الرصيد المتاح للسحب المباشر:</span>
+                        <h3 style="font-size:1.5rem; color:var(--success-color);" id="m-wallet-bal">0 أوقية</h3>
+                    </div>
+
+                    <div style="background:#0f172a; color:#a7f3d0; padding:12px; border-radius:10px; font-family:monospace; font-size:0.7rem;">
+                        <div style="color:white; font-weight:bold; margin-bottom:5px;"><i class="fas fa-network-wired"></i> حالة المزامنة اللامركزية (Mesh P2P)</div>
+                        <p>سجلات متبادلة معلقة بالصحراء: <span id="m-mesh-count">0 حزم معلقة</span></p>
+                    </div>
+                </div>
+
+            </div>
+
+            <nav class="phone-nav">
+                <div class="phone-nav-item active" onclick="switchPhoneTab('m-tab-home', 0)"><i class="fas fa-home"></i><span>الرئيسية</span></div>
+                <div class="phone-nav-item" onclick="switchPhoneTab('m-tab-sensors', 1)"><i class="fas fa-microchip"></i><span>الرصد</span></div>
+                <div class="phone-nav-item" onclick="switchPhoneTab('m-tab-vision', 2)"><i class="fas fa-eye"></i><span>الرؤية AI</span></div>
+                <div class="phone-nav-item" onclick="switchPhoneTab('m-tab-queue', 3)"><i class="fas fa-clock"></i><span>الطوابير</span></div>
+                <div class="phone-nav-item" onclick="switchPhoneTab('m-tab-wallet', 4)"><i class="fas fa-wallet"></i><span>المحفظة</span></div>
+            </nav>
+        </div>
+    </div>
+
+    <div class="central-station">
+        <div class="station-header">
+            <div>
+                <h2>غرفة القيادة والتحليلات الاستباقية للاتحادية اللوجستية 🎖️ (V4)</h2>
+                <p style="font-size:0.8rem; opacity:0.85;">المسارات الطقسية البديلة، تحليلات صحة أجزاء الآليات، والخرائط الطبوغرافية المخبأة لإيواء الطوارئ</p>
+            </div>
+            <div style="background:rgba(255,255,255,0.15); padding:6px 12px; border-radius:30px; font-size:0.75rem; font-weight:bold;">
+                نظام الإنقاذ اللوجستي المتكامل 2026
+            </div>
+        </div>
+
+        <div class="station-tabs">
+            <button class="station-tab-btn active" onclick="switchStationPanel('p-fleet')"><i class="fas fa-truck-monster"></i> أسطول الآليات وصحة القطع</button>
+            <button class="station-tab-btn" onclick="switchStationPanel('p-tracking')"><i class="fas fa-satellite-dish"></i> الخريطة الذكية والإنقاذ (Weather & Oasis)</button>
+            <button class="station-tab-btn" onclick="switchStationPanel('p-queues')"><i class="fas fa-traffic-light"></i> طوابير المحطات الكبرى</button>
+            <button class="station-tab-btn" onclick="switchStationPanel('p-mesh')"><i class="fas fa-project-diagram"></i> شبكة الصحراء اللامركزية (Mesh P2P)</button>
+        </div>
+
+        <div class="station-body">
+            
+            <div id="p-fleet" class="station-panel active">
+                <div class="stats-row">
+                    <div class="card-stat">
+                        <div style="font-size:0.75rem; color:var(--text-light);">إجمالي الآليات المسجلة</div>
+                        <div style="font-size:1.4rem; font-weight:bold;" id="c-count-total">0</div>
+                    </div>
+                    <div class="card-stat" style="border-right-color: var(--success-color);">
+                        <div style="font-size:0.75rem; color:var(--text-light);">الآليات المتاحة ميدانياً</div>
+                        <div style="font-size:1.4rem; font-weight:bold;" id="c-count-avail">0</div>
+                    </div>
+                    <div class="card-stat" style="border-right-color: var(--warning-color);">
+                        <div style="font-size:0.75rem; color:var(--text-light);">عائدات صندوق الاتحادية (10%)</div>
+                        <div style="font-size:1.4rem; font-weight:bold;" id="c-count-fees">0 أوقية</div>
+                    </div>
+                </div>
+
+                <div style="background:#f1f5f9; padding:15px; border-radius:10px; margin-bottom:20px; border:1px solid var(--border-color);">
+                    <h3 style="font-size:0.95rem; margin-bottom:10px; color:var(--primary-color);">🧠 خوارزمية التعيين الذكي والتسعير حسب وعورة التضاريس</h3>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                        <div class="form-group">
+                            <label>المسار الميداني الصحراوي:</label>
+                            <select id="c-route-select" onchange="calculateDynamicPricePreview()">
+                                <option value="NKC_NDB">طريق نواكشوط ➔ نواذيبو (طريق سريع معبد - معامل 1.0)</option>
+                                <option value="NKC_ATR_ROAD">محور نواكشوط ➔ أطار (طريق جبلي معبد - معامل 1.15)</option>
+                                <option value="ATR_CHINGUETTI_OFFROAD">مسار أطار ➔ شنقيط ووادان (طرق وعرة وصحراوية رملية - معامل 1.45)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>نوع الآلية الثقيلة / الشحن:</label>
+                            <select id="c-cargo-select" onchange="calculateDynamicPricePreview()">
+                                <option value="heavy_machinery">🏗️ جرافة ومعدات ثقيلة وبولدوزر صيانة</option>
+                                <option value="dates_truck">🚛 شاحنة مبردة وسلسلة تبريد التمور</option>
+                                <option value="passenger_car">🚗 سيارة نقل ركاب وعائلات طرقية</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="margin-top:10px; font-size:0.85rem; background:white; padding:10px; border-radius:6px; border:1px dashed var(--secondary-color);">
+                        💰 سعر الرحلة الديناميكي الاحتسابي التنبؤي: <strong id="c-price-preview" style="color:var(--danger-color); font-size:1.1rem;">--</strong> أوقية
+                    </div>
+                    <button class="btn btn-blue" style="width:100%; margin-top:12px;" onclick="dispatchSmartMatchingWithTerrain()">إطلاق خوارزمية التعيين وبث الرحلة بالأقمار الصناعية</button>
+                </div>
+
+                <h3 style="font-size:0.95rem; margin-bottom:8px;"><i class="fas fa-analytics"></i> تحليلات الصيانة التنبؤية المتقدمة لقطع غيار الآليات والأسطول:</h3>
+                <table style="width:100%; text-align:right; border-collapse:collapse; font-size:0.8rem;" id="c-drivers-table">
+                    <thead>
+                        <tr style="background:#cbd5e1;">
+                            <th style="padding:8px;">المعرف</th>
+                            <th style="padding:8px;">المهني والآلية</th>
+                            <th style="padding:8px;">ساعات التشغيل</th>
+                            <th style="padding:8px;">التحليل التنبؤي للمكونات والأجزاء الأساسية (عمر القطعة الافتراضي)</th>
+                            <th style="padding:8px;">الحالة</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div id="p-tracking" class="station-panel">
+                <div style="background:#fff7ed; border:1px solid #ffedd5; padding:12px; border-radius:8px; margin-bottom:10px; display:flex; justify-content:between; align-items:center;">
+                    <div style="font-size:0.8rem; flex:1;">
+                        <strong style="color:var(--warning-color);"><i class="fas fa-cloud-sun-rain"></i> وحدة التوجيه الطقسي الطارئ ونقاط الأمان المخبأة:</strong> 
+                        تتيح لك اللوحة محاكاة عاصفة رملية مفاجئة لإجبار الأسطول على تغيير المسار تلقائياً أو التوجه لأقرب واحة إيواء مجهزة مسبقاً في ذاكرة التخزين.
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-orange" style="font-size:0.75rem;" onclick="triggerSandstormWeatherAlert()"><i class="fas fa-wind"></i> محاكاة عاصفة رملية طارئة</button>
+                        <button class="btn btn-green" style="font-size:0.75rem;" onclick="toggleOasisSafetyLayer()"><i class="fas fa-campground"></i> تفعيل واحات الطوارئ وآبار الإيواء</button>
+                    </div>
+                </div>
+
+                <div id="main-fleet-map"></div>
+
+                <div id="c-active-tracking-details" style="display:none; background:#eff6ff; border:2px solid var(--secondary-color); padding:15px; border-radius:10px;">
+                    <h4 style="color:#1e40af; font-size:0.9rem; margin-bottom:8px;"><i class="fas fa-satellite"></i> لوحة بث مؤشرات الـ IoT والـ GPS والوقود للرحلة النشطة</h4>
+                    <p style="font-size:0.8rem;">الرحلة: <strong id="c-track-id">--</strong> | السائق: <strong id="c-track-driver">--</strong> | المسار العملياتي: <span id="c-track-route-type" style="font-weight:bold; color:var(--success-color);">مسار قياسي معتمد</span></p>
+                    <p style="font-size:0.8rem;">إحداثيات الـ GPS الميدانية: <span id="c-track-coords" style="font-family:monospace; color:var(--danger-color); font-weight:bold;">--</span></p>
+                    
+                    <div style="background:white; padding:8px; border-radius:6px; border:1px dashed #93c5fd; display:inline-block; margin-top:8px; font-size:0.8rem;">
+                        🔑 رمز التحقق الأمني المالي للعميل (OTP): <strong id="c-track-otp" style="color:var(--danger-color); font-size:1.05rem;">--</strong>
+                    </div>
+
+                    <div class="iot-chart-container">
+                        <h5 style="font-size:0.75rem; margin-bottom:6px; color:var(--primary-color);"><i class="fas fa-chart-area"></i> منحنى البث التلقائي لإنترنت الأشياء (IoT Telemetry Graphic Engine)</h5>
+                        <canvas id="iotTelemetryChart" style="width:100%; height:130px;"></canvas>
+                    </div>
+                </div>
+                
+                <div id="c-no-tracking-placeholder" style="text-align:center; padding:30px; border:1px dashed var(--border-color); color:var(--text-light); font-size:0.85rem; border-radius:10px;">
+                    لا توجد رحلات تحت بث الأقمار الصناعية (IoT) قيد الحركة حالياً. قم ببدء رحلة من لوحة الأسطول أولاً.
+                </div>
+            </div>
+
+            <div id="p-queues" class="station-panel">
+                <div style="background:#fafafa; padding:15px; border-radius:10px; border:1px solid var(--border-color); margin-bottom:15px;">
+                    <h3 style="font-size:0.95rem; color:var(--primary-color); margin-bottom:5px;"><i class="fas fa-network-wired"></i> موازنة طوابير الانتظار في المحطات ومراكز التجميع الكبرى</h3>
+                    <p style="font-size:0.75rem; color:var(--text-light);">يتم فرز الآليات آلياً لضمان توفير الشاحنات في السوق وسد الاحتياجات المحلية بعدالة.</p>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:15px;">
+                    <div style="background:#f8fafc; border:1px solid var(--border-color); border-radius:8px; padding:12px;">
+                        <h4 style="font-size:0.8rem; border-bottom:2px solid var(--primary-color); padding-bottom:4px; margin-bottom:8px;">🏢 طابور محطة نواكشوط</h4>
+                        <div id="q-list-NKC" style="font-size:0.75rem; display:flex; flex-direction:column; gap:6px;"></div>
+                    </div>
+                    <div style="background:#f8fafc; border:1px solid var(--border-color); border-radius:8px; padding:12px;">
+                        <h4 style="font-size:0.8rem; border-bottom:2px solid var(--app-accent); padding-bottom:4px; margin-bottom:8px;">🌴 طابور محطة أطار</h4>
+                        <div id="q-list-ATR" style="font-size:0.75rem; display:flex; flex-direction:column; gap:6px;"></div>
+                    </div>
+                    <div style="background:#f8fafc; border:1px solid var(--border-color); border-radius:8px; padding:12px;">
+                        <h4 style="font-size:0.8rem; border-bottom:2px solid var(--secondary-color); padding-bottom:4px; margin-bottom:8px;">⚓ طابور محطة نواذيبو</h4>
+                        <div id="q-list-NDB" style="font-size:0.75rem; display:flex; flex-direction:column; gap:6px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="p-mesh" class="station-panel">
+                <div style="background:#fdf2f8; border:1px solid #fbcfe8; padding:15px; border-radius:10px; margin-bottom:15px;">
+                    <h3 style="font-size:0.95rem; color:#9d174d;"><i class="fas fa-wifi"></i> محاكاة طوبولوجيا الاتصال غير المركزي في الصحراء (Mesh Network Topology)</h3>
+                    <p style="font-size:0.75rem; color:var(--text-light); margin-bottom:10px;">محاكاة التقاء شاحنتين في مناطق انعدام التغطية التامة، وتبادل حزم البيانات التتبعية بالبلوتوث الميداني ومزامنتها تلقائياً عند وصول أي شاحنة للمدن.</p>
+                    <button class="btn btn-orange" style="width:100%;" onclick="triggerDesertMeshSyncSimulation()">🤖 تفعيل محاكي التقاء الآليات وتبادل حزم البيانات البينية</button>
+                </div>
+                <div id="c-mesh-sync-log" style="background:#1e293b; color:#34d399; font-family:monospace; padding:12px; border-radius:8px; font-size:0.75rem; min-height:100px; max-height:200px; overflow-y:auto;">
+                    بانتظار تفعيل محاكي الاتصال المفتوح...
+                </div>
+            </div>
+
+            <div class="terminal-box" id="c-live-terminal"></div>
+
+        </div>
+    </div>
+</div>
+
+<div class="payment-modal" id="customPaymentModal">
+    <div class="payment-card">
+        <div style="font-size:2.5rem; color:var(--app-accent); margin-bottom:10px;">💳</div>
+        <h3 style="color:var(--primary-color); margin-bottom:4px;">بوابة الدفع البنكي والتسويات الرقمية المباشرة</h3>
+        <p style="font-size:0.75rem; color:var(--text-light); margin-bottom:15px;">خصم مستحقات العقد وتغذية المحافظ المالية الإلكترونية للمهنيين فوراً</p>
+        
+        <div style="background:#f8fafc; padding:12px; border-radius:8px; font-size:0.8rem; text-align:right; margin-bottom:15px; border:1px solid var(--border-color);">
+            <div>معرف التسوية البنكية: <strong id="p-modal-trip-id">--</strong></div>
+            <div>القيمة الكلية للرحلة: <strong id="p-modal-total">--</strong> أوقية</div>
+            <div style="color:var(--danger-color);">عمولة صندوق الاتحادية المشغلة (10%): <strong id="p-modal-fees">--</strong> أوقية</div>
+            <div style="color:var(--success-color); font-weight:bold;">الصافي الممرر لمحفظة المهني: <strong id="p-modal-net">--</strong> أوقية</div>
+        </div>
+
+        <div style="margin-bottom:15px;">
+            <div style="width:120px; height:120px; background:#e2e8f0; margin:0 auto; display:flex; align-items:center; justify-content:center; font-size:0.65rem; border:2px solid var(--text-dark); font-weight:bold;" id="p-modal-qrcode">
+                [SECURE-QR-CODE]
+            </div>
+            <p style="font-size:0.65rem; color:var(--text-light); margin-top:5px;">امسح الرمز الآمن من هاتف العميل لتأكيد الخصم المصرفي الفوري</p>
+        </div>
+
+        <button class="btn btn-green" style="width:100%;" onclick="confirmPaymentAndReleaseFunds()">تأكيد نجاح الخصم وتوزيع الأرصية الفورية</button>
+    </div>
+</div>
+
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // قاعدة البيانات المستدامة والشاملة للإصدار الرابع (V4)
+    let PlatformDatabase = {
+        drivers: [
+            { 
+                id: "DRV-101", name: "محمد الأمين ناني", type: "heavy_machinery", status: "available", engineHours: 140, currentStation: "NKC",
+                components: { hydraulic: 92, airFilter: 88, tires: 95 } // إضافة ميزة V4 لقياس صحة أجزاء ومكونات الآلية
+            },
+            { 
+                id: "DRV-102", name: "شيخنا ولد سيدي", type: "dates_truck", status: "available", engineHours: 210, currentStation: "ATR",
+                components: { hydraulic: 78, airFilter: 62, tires: 80 }
+            },
+            { 
+                id: "DRV-103", name: "النان ولد أحمد", type: "passenger_car", status: "available", engineHours: 85, currentStation: "NKC",
+                components: { hydraulic: 96, airFilter: 94, tires: 91 }
+            }
+        ],
+        activeTrip: null,
+        unionFeesAccumulated: 0,
+        driverWalletBalance: 0,
+        queues: { NKC: [], ATR: [], NDB: [] },
+        oasisLayerGroup: null, // طبقة الواحات لـ V4
+        isOasisLayerActive: false,
+        isSandstormActive: false
+    };
+
+    const MauritaniaCoordinates = {
+        NKC: [18.0858, -15.9785],
+        NDB: [20.9309, -17.0345],
+        ATR: [20.5169, -13.0499],
+        // نقاط الإيواء والواحات للطوارئ (V4) المخبأة
+        OasisTerjit: [20.2524, -13.0903],
+        WellOumLhmade: [19.8214, -14.2231],
+        ChinguettiSafetyCamp: [20.4651, -12.3584]
+    };
+
+    let leafletMapInstance = null;
+    let mapMarkerVehicle = null;
+    let mapPolylinePath = null;
+    let telemetryChartInstance = null;
+    let iotIntervalLoop = null;
+
+    // تبديل تبويبات الهاتف الميداني للآليات
+    function switchPhoneTab(tabId, index) {
+        document.querySelectorAll('.phone-tab-page').forEach(p => p.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        document.querySelectorAll('.phone-nav-item').forEach(i => i.classList.remove('active'));
+        document.querySelectorAll('.phone-nav-item')[index].classList.add('active');
+    }
+
+    // تبديل لوحات التحكم المركزية الكبرى للاتحادية
+    function switchStationPanel(panelId) {
+        document.querySelectorAll('.station-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById(panelId).classList.add('active');
+        if (panelId === 'p-tracking' && leafletMapInstance) {
+            setTimeout(() => { leafletMapInstance.invalidateSize(); }, 200);
+        }
+        event.target.closest('.station-tab-btn').parentElement.querySelectorAll('.station-tab-btn').forEach(b => b.classList.remove('active'));
+        event.target.closest('.station-tab-btn').classList.add('active');
+    }
+
+    // كونسول رصد وأحداث المنظومة
+    function pushTerminalLog(msg, type='info') {
+        const consoleBox = document.getElementById('c-live-terminal');
+        const time = new Date().toLocaleTimeString('ar-SA', { hour12: false });
+        let color = "#38bdf8";
+        if(type==='success') color = "#4ade80";
+        if(type==='warn') color = "#fbbf24";
+        if(type==='error') color = "#f87171";
+
+        const row = document.createElement('div');
+        row.style.color = color;
+        row.innerHTML = `[${time}] ${msg}`;
+        consoleBox.appendChild(row);
+        consoleBox.scrollTop = consoleBox.scrollHeight;
+    }
+
+    // تهيئة خريطة Leaflet وتوطين نقاط الانطلاق
+    function setupLeafletMap() {
+        if (leafletMapInstance) return;
+        leafletMapInstance = L.map('main-fleet-map').setView([19.5, -14.5], 6);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(leafletMapInstance);
+
+        PlatformDatabase.oasisLayerGroup = L.layerGroup();
+
+        L.marker(MauritaniaCoordinates.NKC).addTo(leafletMapInstance).bindPopup("<b>العاصمة نواكشوط (المركز العملياتي الرئيسي)</b>");
+        L.marker(MauritaniaCoordinates.ATR).addTo(leafletMapInstance).bindPopup("<b>محطة آدرار وأطار اللوجستية للتمور</b>");
+        L.marker(MauritaniaCoordinates.NDB).addTo(leafletMapInstance).bindPopup("<b>ثغر نواذيبو التجاري المفتوح</b>");
+    }
+
+    // تفعيل وإخفاء طبقة واحات الإيواء وآبار الطوارئ (V4)
+    function toggleOasisSafetyLayer() {
+        if(PlatformDatabase.isOasisLayerActive) {
+            leafletMapInstance.removeLayer(PlatformDatabase.oasisLayerGroup);
+            PlatformDatabase.isOasisLayerActive = false;
+            pushTerminalLog("الخريطة: تم إخفاء طبقة واحات الإيواء المخصصة للطوارئ الصحراوية.", "info");
+        } else {
+            PlatformDatabase.oasisLayerGroup.clearLayers();
+            
+            // إضافة نقاط الطوارئ
+            L.marker(MauritaniaCoordinates.OasisTerjit, {icon: L.divIcon({className: 'custom-div-icon', html: "🌴", iconSize: [20, 20]})})
+                .addTo(PlatformDatabase.oasisLayerGroup).bindPopup("<b>واحة ترجيت الآمنة:</b> ورشة صيانة ميدانية ومخزون وقود واحتياط مياه للاتحادية.");
+            
+            L.marker(MauritaniaCoordinates.WellOumLhmade, {icon: L.divIcon({className: 'custom-div-icon', html: "💧", iconSize: [20, 20]})})
+                .addTo(PlatformDatabase.oasisLayerGroup).bindPopup("<b>بئر أم لحياض الحيوي:</b> نقطة إمداد وإيواء مجهزة مسبقاً للآليات الثقيلة.");
+            
+            L.marker(MauritaniaCoordinates.ChinguettiSafetyCamp, {icon: L.divIcon({className: 'custom-div-icon', html: "⛺", iconSize: [20, 20]})})
+                .addTo(PlatformDatabase.oasisLayerGroup).bindPopup("<b>محطة إغاثة شنقيط:</b> مركز اتصال عبر الأقمار الصناعية ودعم لوجستي مالي.");
+
+            leafletMapInstance.addLayer(PlatformDatabase.oasisLayerGroup);
+            PlatformDatabase.isOasisLayerActive = true;
+            pushTerminalLog("الخريطة: تفعيل الخرائط الطبوغرافية المخبأة وعرض واحات الطوارئ ونقاط الإمداد بنجاح.", "success");
+        }
+    }
+
+    // محاكاة إطلاق إنذار عاصفة رملية مفاجئة وإعادة التوجيه (Weather Rerouting - V4)
+    function triggerSandstormWeatherAlert() {
+        if(!PlatformDatabase.activeTrip) {
+            alert("تنبيه: لا توجد أي رحلة بث للأقمار الصناعية نشطة حالياً لإعادة توجيهها طقسياً.");
+            return;
+        }
+        PlatformDatabase.isSandstormActive = true;
+        document.getElementById('c-track-route-type').innerHTML = `<span style="color:var(--danger-color); animation:pulse 1s infinite;"><i class="fas fa-wind"></i> تم التوجيه التلقائي لمسار طقسي بديل آمن تفادياً للعاصفة</span>`;
+        pushTerminalLog("الأرصاد الجوية العاجلة: تم رصد عاصفة رملية وتدني للرؤية على محور آدرار، خوارزمية التوجيه تعدل خط سير الآلية حياً لأقرب نقطة أمان!", "warn");
+    }
+
+    // 1. حساب السعر الديناميكي حسب فئة الحمولة وعامل وعورة المسار
+    function calculateDynamicPricePreview() {
+        const route = document.getElementById('c-route-select').value;
+        const cargo = document.getElementById('c-cargo-select').value;
+        
+        let basePrice = 8000;
+        let terrainMultiplier = 1.0;
+
+        if (cargo === 'heavy_machinery') basePrice = 18000;
+        if (cargo === 'dates_truck') basePrice = 12000;
+
+        if (route === 'NKC_ATR_ROAD') terrainMultiplier = 1.15;
+        if (route === 'ATR_CHINGUETTI_OFFROAD') terrainMultiplier = 1.45; // الارتفاع الميداني للأوعر صحراوياً
+
+        const finalCalculated = Math.round(basePrice * terrainMultiplier);
+        document.getElementById('c-price-preview').textContent = finalCalculated.toLocaleString();
+        return finalCalculated;
+    }
+
+    // تحديث وتغذية واجهات المستخدم بالكامل حياً وبشكل دوري
+    function refreshSystemUI() {
+        document.getElementById('c-count-total').textContent = PlatformDatabase.drivers.length;
+        document.getElementById('c-count-avail').textContent = PlatformDatabase.drivers.filter(d => d.status==='available').length;
+        document.getElementById('c-count-fees').textContent = PlatformDatabase.unionFeesAccumulated.toLocaleString();
+        document.getElementById('m-wallet-bal').textContent = PlatformDatabase.driverWalletBalance.toLocaleString() + " أوقية";
+
+        // بناء جدول إدارة الأسطول مع التحليلات التنبؤية المتكاملة لصحة أجزاء الآلية (V4)
+        const tbody = document.querySelector('#c-drivers-table tbody');
+        tbody.innerHTML = '';
+        PlatformDatabase.drivers.forEach(d => {
+            const statusBadge = d.status === 'available' 
+                ? `<span style="background:#dcfce7; color:#16a34a; padding:2px 6px; border-radius:4px; font-weight:bold;">متاح</span>`
+                : `<span style="background:#fee2e2; color:#dc2626; padding:2px 6px; border-radius:4px; font-weight:bold;">في الرحلة حياً</span>`;
+
+            // احتساب ألوان أشرطة القطع والمكونات الهيدروليكية بناء على التحليل التنبؤي
+            const getProgressColor = (val) => val > 80 ? 'var(--success-color)' : (val > 60 ? 'var(--warning-color)' : 'var(--danger-color)');
+
+            tbody.innerHTML += `<tr>
+                <td style="padding:8px; font-family:monospace;">${d.id}</td>
+                <td style="padding:8px; font-weight:bold;">${d.name} <br><small style="color:var(--text-light); font-weight:normal;">الفئة: ${d.type}</small></td>
+                <td style="padding:8px;">${d.engineHours} ساعة تشغيل</td>
+                <td style="padding:8px; width:450px;">
+                    <div style="font-size:0.7rem; margin-bottom:2px; display:flex; justify-content:space-between;">
+                        <span>زيت الهيدروليك والرفع: ${d.components.hydraulic}%</span>
+                        <span>فلاتر الهواء الصحراوية: ${d.components.airFilter}%</span>
+                        <span>ضغط الإطارات الرملية: ${d.components.tires}%</span>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:5px;">
+                        <div class="health-bar-container"><div class="health-bar-fill" style="width:${d.components.hydraulic}%; background:${getProgressColor(d.components.hydraulic)};"></div></div>
+                        <div class="health-bar-container"><div class="health-bar-fill" style="width:${d.components.airFilter}%; background:${getProgressColor(d.components.airFilter)};"></div></div>
+                        <div class="health-bar-container"><div class="health-bar-fill" style="width:${d.components.tires}%; background:${getProgressColor(d.components.tires)};"></div></div>
+                    </div>
+                </td>
+                <td style="padding:8px;">${statusBadge}</td>
+            </tr>`;
+        });
+
+        // تحديث كروت جوب الهاتف الميداني للسائق
+        const jobBox = document.getElementById('m-active-jobs-list');
+        jobBox.innerHTML = '';
+        if(!PlatformDatabase.activeTrip) {
+            jobBox.innerHTML = `<p style="font-size:0.75rem; color:var(--text-light); text-align:center; padding:10px;">لا توجد مهام أو عقود شحن مسندة لك حالياً.</p>`;
+            document.getElementById('m-driver-status-text').textContent = "متاح ومستعد في انتظار التعيين";
+        } else {
+            document.getElementById('m-driver-status-text').textContent = "🔴 بث الأقمار الصناعية وربط مستشعرات الـ IoT نشط";
+            jobBox.innerHTML = `
+                <div style="background:white; border:1px solid #cbd5e1; padding:12px; border-radius:10px; border-right:4px solid var(--secondary-color);">
+                    <div style="font-weight:bold; font-size:0.8rem; display:flex; justify-content:space-between;">
+                        <span>معرف الرحلة المفتوحة: ${PlatformDatabase.activeTrip.id}</span>
+                        <span style="color:var(--danger-color); font-weight:bold;">نشط وبث فوري</span>
+                    </div>
+                    <p style="font-size:0.7rem; color:var(--text-light); margin-top:4px;">المسار المعين: ${PlatformDatabase.activeTrip.routeName}</p>
+                    <p style="font-size:0.7rem; color:var(--warning-color); font-weight:bold; margin-top:2px;"><i class="fas fa-microchip"></i> يرجى الذهاب لتبويب [الرؤية AI] لتأكيد مطابقة شحن الحمولة بصرياً</p>
+                </div>
+            `;
+        }
+
+        // تحديث وعرض الطوابير الرقمية بمحطات الانطلاق الثلاثة الكبرى
+        ['NKC', 'ATR', 'NDB'].forEach(station => {
+            const qContainer = document.getElementById(`q-list-${station}`);
+            qContainer.innerHTML = '';
+            if(PlatformDatabase.queues[station].length === 0) {
+                qContainer.innerHTML = `<span style="color:var(--text-light); font-size:0.7rem;">الطابور فارغ، لا توجد تجمعات عشوائية</span>`;
+            } else {
+                PlatformDatabase.queues[station].forEach((driverName, idx) => {
+                    qContainer.innerHTML += `<div style="background:white; padding:6px; border-radius:4px; border:1px solid #cbd5e1; display:flex; justify-content:space-between;">
+                        <span>#${idx+1} ${driverName}</span>
+                        <span class="queue-badge" style="background:#e0f2fe; color:#0369a1;">محجوز مسبقاً</span>
+                    </div>`;
+                });
+            }
+        });
+    }
+
+    // 2. إطلاق خوارزمية التعيين وبث مسار التتبع وحركة مستشعرات التبريد (Chart.js)
+    function dispatchSmartMatchingWithTerrain() {
+        if(PlatformDatabase.activeTrip) {
+            alert("تنبيه: هناك رحلة بث نشطة حالياً تحت الأقمار الصناعية، يرجى تصفيتها وتسويتها مالياً أولاً!");
+            return;
+        }
+
+        const cargoType = document.getElementById('c-cargo-select').value;
+        const routeCode = document.getElementById('c-route-select').value;
+        const finalCost = calculateDynamicPricePreview();
+
+        let candidates = PlatformDatabase.drivers.filter(d => d.status === 'available' && d.type === cargoType);
+        if(candidates.length === 0) {
+            alert("لا تتوفر معدات أو آليات ثقيلة متاحة من هذه الفئة المحددة حالياً في محطات الانطلاق.");
+            return;
+        }
+
+        // اختيار المعدة الأنسب والأقل تشغيلاً (معيار توزيع الجهد الميكانيكي لحماية الآليات)
+        candidates.sort((a,b) => a.engineHours - b.engineHours);
+        const selectedDriver = candidates[0];
+
+        selectedDriver.status = 'busy';
+        const generatedTripId = "TRIP-" + Math.floor(1000 + Math.random()*9000);
+        const securityOtp = Math.floor(1000 + Math.random()*9000);
+
+        let startPt = MauritaniaCoordinates.NKC;
+        let endPt = MauritaniaCoordinates.ATR;
+        let routeNameStr = "نواكشوط ➔ أطار";
+
+        if(routeCode === 'NKC_NDB') { endPt = MauritaniaCoordinates.NDB; routeNameStr = "نواكشوط ➔ نواذيبو"; }
+        if(routeCode === 'ATR_CHINGUETTI_OFFROAD') { startPt = MauritaniaCoordinates.ATR; endPt = [20.4651, -12.3584]; routeNameStr = "أطار ➔ واحة شنقيط الوعرة وصحاريها"; }
+
+        PlatformDatabase.activeTrip = {
+            id: generatedTripId,
+            driverId: selectedDriver.id,
+            driverName: selectedDriver.name,
+            routeName: routeNameStr,
+            totalPrice: finalCost,
+            otp: securityOtp,
+            start: startPt,
+            end: endPt,
+            cargo: cargoType,
+            routeCode: routeCode
+        };
+
+        PlatformDatabase.isSandstormActive = false; // إعادة تعيين حالة الطقس للرحلة الجديدة
+
+        // تفعيل لوحة التتبع الفوري الفرعية
+        document.getElementById('c-no-tracking-placeholder').style.display = 'none';
+        document.getElementById('c-active-tracking-details').style.display = 'block';
+        document.getElementById('c-track-id').textContent = generatedTripId;
+        document.getElementById('c-track-driver').textContent = selectedDriver.name;
+        document.getElementById('c-track-otp').textContent = securityOtp;
+        document.getElementById('c-track-route-type').textContent = "مسار قياسي معتمد";
+
+        pushTerminalLog(`خوارزمية التضاريس (V4): تم قفل وتثبيت عقد الرحلة ${generatedTripId} للمهني [${selectedDriver.name}] بسعر معدّل حسب جغرافية المسار`, 'success');
+        
+        // إشعال محرك بث قراءات الـ IoT والـ GPS ومستشعرات الحاوية
+        runLiveIoTSimulationEngine(startPt, endPt, cargoType, selectedDriver, routeCode);
+        refreshSystemUI();
+    }
+
+    // محرك بث بيانات الـ IoT والوقود والتحليل التنبؤي المتناقص لقطع الغيار حياً
+    function runLiveIoTSimulationEngine(start, end, cargoType, driverInstance, routeCode) {
+        if(iotIntervalLoop) clearInterval(iotIntervalLoop);
+        if(mapMarkerVehicle) leafletMapInstance.removeLayer(mapMarkerVehicle);
+        if(mapPolylinePath) leafletMapInstance.removeLayer(mapPolylinePath);
+
+        mapPolylinePath = L.polyline([start, end], {color: '#0284c7', weight: 4, dashArray: '5, 5'}).addTo(leafletMapInstance);
+        mapMarkerVehicle = L.marker(start).addTo(leafletMapInstance).bindPopup("بث الأقمار الصناعية (IoT Active)").openPopup();
+        leafletMapInstance.fitBounds(mapPolylinePath.getBounds());
+
+        let ticks = 0;
+        const totalTicks = 20;
+        
+        initTelemetryChartUI();
+
+        iotIntervalLoop = setInterval(() => {
+            ticks++;
+            let currentTargetEnd = end;
+            
+            // في حال تفعيل إعادة التوجيه الطقسي الطارئ (V4) يتم تعديل اتجاه الإحداثيات نحو أقرب واحة أمان
+            if(PlatformDatabase.isSandstormActive && ticks > 8) {
+                currentTargetEnd = MauritaniaCoordinates.OasisTerjit; 
+            }
+
+            let lat = start[0] + (currentTargetEnd[0] - start[0]) * (ticks / totalTicks);
+            let lng = start[1] + (currentTargetEnd[1] - start[1]) * (ticks / totalTicks);
+            mapMarkerVehicle.setLatLng([lat, lng]);
+
+            document.getElementById('c-track-coords').textContent = `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`;
+
+            // استهلاك وتناقص وقود وحرارة سلسلة التبريد للتمور
+            let currentTemp = 16 + Math.floor(Math.random() * 4);
+            if(cargoType === 'dates_truck' && ticks > 10) currentTemp += 6; 
+            let currentFuel = Math.max(0, 95 - (ticks * 3.5));
+
+            document.getElementById('m-sensor-temp').textContent = `${currentTemp} °C`;
+            document.getElementById('m-sensor-fuel').textContent = `${Math.round(currentFuel)} %`;
+
+            const alertBox = document.getElementById('m-sensor-alert');
+            if(cargoType === 'dates_truck' && currentTemp > 23) {
+                alertBox.style.display = 'block';
+                alertBox.innerHTML = `⚠️ إنذار سلسلة التبريد (IoT): حرارة الحاوية بلغت (${currentTemp}°C) يرجى تشغيل المبرد البديل فوراً لحماية التمور من التلف!`;
+                document.getElementById('m-sensor-temp').style.color = 'var(--danger-color)';
+            } else {
+                alertBox.style.display = 'none';
+                document.getElementById('m-sensor-temp').style.color = 'var(--success-color)';
+            }
+
+            // التحديث الجديد لـ V4: تناقص صحة وعمر أجزاء الآلية تنبؤياً حسب وعورة المسار الميداني
+            let decayFactor = 0.4; // طرق سريعة معبدة
+            if(routeCode === 'ATR_CHINGUETTI_OFFROAD') decayFactor = 1.6; // طرق صخرية ورملية تستهلك قطع الغيار بسرعة
+
+            driverInstance.components.hydraulic = Math.max(10, Math.round(driverInstance.components.hydraulic - (decayFactor * 0.8)));
+            driverInstance.components.airFilter = Math.max(10, Math.round(driverInstance.components.airFilter - (decayFactor * 1.2))); // الفلتر يستهلك أسرع في الغبار
+            driverInstance.components.tires = Math.max(10, Math.round(driverInstance.components.tires - (decayFactor * 0.7)));
+
+            updateTelemetryChartValues(ticks, currentTemp, currentFuel);
+            refreshSystemUI();
+
+            if(ticks >= totalTicks) {
+                clearInterval(iotIntervalLoop);
+                if(PlatformDatabase.isSandstormActive) {
+                    pushTerminalLog("إدارة الأزمات: وصلت الآلية بأمان لواحة الإيواء الطقسية البديلة (ترجيت) بسلام وتنتظر التسوية البنكية المباشرة.", "success");
+                } else {
+                    pushTerminalLog("إنترنت الأشياء (IoT): وصلت شاحنة النقل والآلية الثقيلة لوجهتها النهائية وتنتظر التسوية والتدقيق المالي الفوري.", "success");
+                }
+                triggerPaymentGatewaySandboxModal();
+            }
+        }, 550);
+    }
+
+    function initTelemetryChartUI() {
+        const ctx = document.getElementById('iotTelemetryChart').getContext('2d');
+        if(telemetryChartInstance) telemetryChartInstance.destroy();
+
+        telemetryChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'حرارة التبريد (°C)', data: [], borderColor: '#dc2626', borderWidth: 2, yAxisID: 'y' },
+                    { label: 'مستوى الوقود (%)', data: [], borderColor: '#0284c7', borderWidth: 2, yAxisID: 'y1' }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { type: 'linear', position: 'left' },
+                    y1: { type: 'linear', position: 'right', grid: { drawOnChartArea: false } }
+                }
+            }
+        });
+    }
+
+    function updateTelemetryChartValues(tick, temp, fuel) {
+        if(!telemetryChartInstance) return;
+        telemetryChartInstance.data.labels.push(`نقطة ${tick}`);
+        telemetryChartInstance.data.datasets[0].data.push(temp);
+        telemetryChartInstance.data.datasets[1].data.push(fuel);
+        telemetryChartInstance.update();
+    }
+
+    // 3. محاكاة تفعيل وحدة الرؤية الحاسوبية والتحقق الذكي بصرياً من الحمولات (Computer Vision Cargo Verification - V4)
+    function simulateComputerVisionAnalysis() {
+        if(!PlatformDatabase.activeTrip) {
+            alert("تنبيه: يجب وجود رحلة نقل نشطة لتشغيل عدسة الرؤية الحاسوبية ومطابقة الحمولات والماشية عليها!");
+            return;
+        }
+
+        const scanLine = document.getElementById('m-vision-scan');
+        const camPlaceholder = document.getElementById('m-vision-cam-placeholder');
+        const resultBox = document.getElementById('m-vision-result-box');
+        const camBox = document.getElementById('m-vision-cam');
+
+        scanLine.style.display = 'block';
+        camPlaceholder.textContent = "⚙️ خوارزمية الذكاء الاصطناعي تحلل ملامح الحمولة بصرياً وتعد الوحدات...";
+        camBox.style.borderColor = "var(--warning-color)";
+        resultBox.style.display = 'none';
+
+        setTimeout(() => {
+            scanLine.style.display = 'none';
+            camBox.style.borderColor = "var(--success-color)";
+            camPlaceholder.innerHTML = `<span style="color:var(--success-color); font-weight:bold;"><i class="fas fa-check-circle"></i> نجاح المسح والتوثيق البصري الآمن للأقمار الصناعية</span>`;
+            
+            let detectedCargoStr = "عدد صناديق التمور الطازجة: 120 صندوق (مطابقة تامة بنسبة 99.4%)";
+            if(PlatformDatabase.activeTrip.cargo === 'heavy_machinery') detectedCargoStr = "توثيق بصري: جير ومعدات ملحقة بولدوزر ثقيل (مطابقة بنسبة 98.7%)";
+            if(PlatformDatabase.activeTrip.cargo === 'passenger_car') detectedCargoStr = "توثيق بصري للركاب: 7 أفراد (مطابق للبيان الطرقي لوزارة النقل 100%)";
+
+            resultBox.style.display = 'block';
+            resultBox.innerHTML = `
+                <div style="background:#dcfce7; color:#166534; padding:10px; border-radius:8px; font-size:0.75rem; border:1px solid #bbf7d0;">
+                    <strong>🎖️ تقرير الرؤية الحاسوبية (Computer Vision AI):</strong><br>
+                    ${detectedCargoStr}<br>
+                    <small style="color:var(--text-light);">تم قفل وتشفير البيان البصري في العقد الرقمي لضمان عدم حدوث نقص عند التفريغ.</small>
+                </div>
+            `;
+            pushTerminalLog(`الرؤية الحاسوبية: تم بنجاح توثيق عدد وأشكال الحمولات والماشية بصرياً وإرفاق البصمة الرقمية بالعقد.`, 'success');
+        }, 1800);
+    }
+
+    // 4. بوابة الدفع البنكي الرقمي المباشر وتسوية رمز الـ OTP المالي وحقوق الاتحادية
+    function triggerPaymentGatewaySandboxModal() {
+        const trip = PlatformDatabase.activeTrip;
+        if(!trip) return;
+
+        const unionFee = Math.round(trip.totalPrice * 0.10);
+        const driverNet = trip.totalPrice - unionFee;
+
+        document.getElementById('p-modal-trip-id').textContent = trip.id;
+        document.getElementById('p-modal-total').textContent = trip.totalPrice.toLocaleString();
+        document.getElementById('p-modal-fees').textContent = unionFee.toLocaleString();
+        document.getElementById('p-modal-net').textContent = driverNet.toLocaleString();
+
+        document.getElementById('p-modal-qrcode').innerHTML = `SECURE-V4-PAY<br>ID:${trip.id}<br>NET:${driverNet}`;
+        document.getElementById('customPaymentModal').style.display = 'flex';
+    }
+
+    function confirmPaymentAndReleaseFunds() {
+        const trip = PlatformDatabase.activeTrip;
+        if(!trip) return;
+
+        const unionFee = Math.round(trip.totalPrice * 0.10);
+        const driverNet = trip.totalPrice - unionFee;
+
+        // ترحيل وتوزيع المستحقات المالية الدفترية في الصندوق والمحفظة حياً
+        PlatformDatabase.unionFeesAccumulated += unionFee;
+        PlatformDatabase.driverWalletBalance += driverNet;
+
+        const drv = PlatformDatabase.drivers.find(d => d.id === trip.driverId);
+        if(drv) {
+            drv.status = 'available';
+            drv.engineHours += 14; // زيادة تيار ساعات التشغيل للمعدة تنبؤياً
+        }
+
+        pushTerminalLog(`التدقيق المالي والبنكي: تمت التسوية الإلكترونية للرحلة ${trip.id}. الصندوق استقطع العمولة وتغذت محفظة المهني بنجاح.`, 'success');
+
+        // إغلاق مودال التسوية ومسح المسار من الخريطة للرحلة القادمة
+        document.getElementById('customPaymentModal').style.display = 'none';
+        document.getElementById('c-active-tracking-details').style.display = 'none';
+        document.getElementById('c-no-tracking-placeholder').style.display = 'block';
+
+        if(mapMarkerVehicle) leafletMapInstance.removeLayer(mapMarkerVehicle);
+        if(mapPolylinePath) leafletMapInstance.removeLayer(mapPolylinePath);
+
+        PlatformDatabase.activeTrip = null;
+        refreshSystemUI();
+
+        // إعادة تصفية واجهة الرؤية الحاسوبية بالجوال لتهيئتها
+        document.getElementById('m-vision-scan').style.display = 'none';
+        document.getElementById('m-vision-result-box').style.display = 'none';
+        document.getElementById('m-vision-cam-placeholder').innerHTML = `<span style="font-size:0.8rem; color:#94a3b8; text-align:center; padding:10px;"><i class="fas fa-qrcode fa-2x" style="display:block; margin-bottom:5px;"></i> بانتظار تشغيل عدسة التحقق الذكي</span>`;
+        document.getElementById('m-vision-cam').style.borderColor = "#cbd5e1";
+    }
+
+    // 5. نظام حجز تذاكر الأدوار الرقمية في المحطات لمنع التكدس العشوائي للآليات
+    function requestQueueTicketFromMobile() {
+        const station = document.getElementById('m-queue-station-select').value;
+        const driverName = "محمد الأمين ناني (معدات ثقيلة)"; 
+
+        if(PlatformDatabase.queues[station].includes(driverName)) {
+            alert("تنبيه: اسمك مدرج ومحجوز بالفعل في طابور الانتظار الرقمي لهذه المحطة اللوجستية مسبقاً!");
+            return;
+        }
+
+        PlatformDatabase.queues[station].push(driverName);
+        const position = PlatformDatabase.queues[station].length;
+
+        document.getElementById('m-queue-ticket-result').innerHTML = `
+            <div style="background:#dcfce7; color:#16803d; padding:12px; border-radius:10px; font-size:0.75rem; font-weight:bold; border:1px solid #bbf7d0;">
+                🎉 تم حجز دورك وتأمين مكانك في صف طابور المحطة بنجاح!<br>
+                ترتيبك الحالي في صف الانطلاق الميكانيكي: [ المرتبة #${position} ]
+            </div>
+        `;
+
+        pushTerminalLog(`طوابير المحطات: قام المهني [${driverName}] بحجز دور رقمي مسبق في محطة ${station} عبر تطبيقه الميداني.`, 'info');
+        refreshSystemUI();
+    }
+
+    // 6. محاكي شبكة الاتصال التبادلي البيني غير المركزي بالصحراء (Mesh P2P Simulator)
+    function triggerDesertMeshSyncSimulation() {
+        const meshLog = document.getElementById('c-mesh-sync-log');
+        meshLog.innerHTML = `<p style="color:#fbbf24;"><i class="fas fa-spinner fa-spin"></i> استشعار واكتشاف أجهزة ملاحة قريبة في النطاق الصحراوي اللاسلكي المفتوح...</p>`;
+
+        setTimeout(() => {
+            meshLog.innerHTML += `<p style="color:#67e8f9;">[اتصال] تم التقاط إشارة آلية ثقيلة متقاطعة بالبلوتوث الميداني: الآلية DRV-102</p>`;
+            meshLog.innerHTML += `<p style="color:#67e8f9;">[P2P Mesh Network] بدء تبادل وتزامن حزم السجلات المشفرة والتقارير الميدانية للتمور والوقود...</p>`;
+            
+            setTimeout(() => {
+                document.getElementById('m-mesh-count').textContent = "3 حزم دفترية مؤمنة";
+                meshLog.innerHTML += `<p style="color:#4ade80; font-weight:bold;">✓ نجاح المزامنة الند للند الصحراوية! تم تفريغ وتأمين حزم التتبع والأعطال وحفظها لحين رصد شبكة الخلوي بالمدينة.</p>`;
+                pushTerminalLog(`شبكة الصحراء الهجينة: تفاعل تبادلي P2P ناجح بين الآليات في المنطقة المقطوعة للتغطية بنجاح الأرشفة التلقائية.`, 'success');
+            }, 1200);
+
+        }, 1000);
+    }
+
+    // تشغيل المنصة تلقائياً فور تحميل المتصفح بالكامل
+    window.addEventListener('load', () => {
+        setupLeafletMap();
+        calculateDynamicPricePreview();
+        refreshSystemUI();
+        pushTerminalLog("المنظومة اللوجستية الاحترافية للاتحادية V4 مستقرة بالكامل وتدعم حلول الأزمات الميدانية وتقنيات 2026.", "success");
+    });
+</script>
+
+</body>
+</html>
